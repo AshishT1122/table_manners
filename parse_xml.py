@@ -3,7 +3,7 @@ import wikitextparser as wtp
 import unidecode
 import csv
 
-xml_file_path = '/Users/emily/Documents/sample.xml'
+xml_file_path = 'sample.xml'
 csv_file_path = 'table_data_test.csv'
 
 
