@@ -1,5 +1,10 @@
 import re
 import wikitextparser as wtp
+import unidecode
+import csv
+
+xml_file_path = '/Users/emily/Documents/sample.xml'
+csv_file_path = 'table_data_test.csv'
 
 
 def preprocess_text(text):
@@ -70,52 +75,20 @@ def preprocess_text(text):
     return text
 
 
-dump_file = open('/Users/emily/Documents/sample.xml',"r")
+dump_file = open(xml_file_path,"r")
 markup = dump_file.read()
 selector = re.compile(r'<page>(.*?)</page>', re.DOTALL)
 xml_pages = re.findall(selector, markup)
 dump_file.close()
 
-"""
-parsed = wtp.parse(xml_pages[1])
-text = parsed.sections[13].contents
-table_data_fails = 0
-for table in parsed.sections[13].tables:
-    table_text = ""
-    try:
-        table_data = table.data(span=False)
-        if len(table_data[0]) <= 2 and len(table_data) > 1 and len(table_data[0]) + 2 < len(table_data[1]):
-            for elem in table_data[0]:
-                if elem.strip() != "":
-                    table_text += elem + ", "
-            table_data = table_data[1:]
-        if len(table_data) == 1:
-            for elem in table_data[0]:
-                if elem.strip() != "":
-                    table_text += elem + ", "
-        table_text += ". "
-        print(table_text)
-    except: # working with p_tables[table_num].data sometimes throws unexplained errors
-        table_data_fails+=1
-        continue
-    print(len(table.data(span=False)))
-    print(len(table.data(span=False)[0]))
-    table_data = table.data(span=False)
-    for row in range(1, len(table_data)):
-        for column in range(len(table_data[row])):
-            if column < len(table_data[0]) and table_data[row][column] is not None and str(table_data[row][column]).strip() != "":
-                if table_data[0][column] is not None:
-                    table_text += table_data[0][column] + ": "
-                table_text += table_data[row][column] + ', '
-        table_text += ". "
-    table_text = table_text.replace("''", "")
-    table_text = table_text.replace("|", " | ")
-    # Try to add table in appropriate place in text.
-    print(table_text)
-"""
+
+col_headers = ['table_title', 'table_content', 'section_title', 'section_content', 'page_title']
+with open(csv_file_path, "w") as fp:
+    wr = csv.writer(fp)
+    wr.writerow(col_headers)
 
 for page in xml_pages:
-    page_title = page.title
+    page_title = unidecode.unidecode(re.search('<title>(.*?)</title>', page).group(1).strip())
     parsed = wtp.parse(page)
     for sec in parsed.sections:
         section_title = sec.title
@@ -137,12 +110,9 @@ for page in xml_pages:
                             if elem.strip() != "":
                                 table_text += elem + ", "
                     table_text += ". "
-                    print(table_text)
                 except: # working with p_tables[table_num].data sometimes throws unexplained errors
                     table_data_fails+=1
                     continue
-                print(len(table.data(span=False)))
-                print(len(table.data(span=False)[0]))
                 table_data = table.data(span=False)
                 for row in range(1, len(table_data)):
                     for column in range(len(table_data[row])):
@@ -153,16 +123,16 @@ for page in xml_pages:
                     table_text += ". "
                 table_text = table_text.replace("''", "")
                 table_text = table_text.replace("|", " | ")
-                # Try to add table in appropriate place in text.
+
+                #print(preprocess_text(table_title))
                 #print(preprocess_text(table_text))
+                #print(preprocess_text(section_title).strip())
+                #print(preprocess_text(section_content))
+                #print(page_title)
 
-                print(table_title)
-                print(table_text)
-                print(section_title)
-                print(section_content)
-                print(page_title)
-                
-                # add table_title, table_text, section_title, section_content, and page_title into csv
+                # adds table title, table text, section title, 'section_content' (to be updated), and page title into csv
+                with open('table_data_test.csv', "a") as fp:
+                    wr = csv.writer(fp)
+                    wr.writerow([preprocess_text(table_title), preprocess_text(table_text), preprocess_text(section_title).strip(), 'section_content', page_title])
 
-        print(list(sec.tables))
     #input("Press Enter to continue...")
