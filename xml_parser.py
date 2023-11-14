@@ -140,7 +140,7 @@ def main():
     Main function to process the XML dump and write to a CSV file.
     """
     # Constants for file paths
-    XML_FILE_PATH = '/Users/emily/Documents/sample.xml'
+    XML_FILE_PATH = 'sample.xml'
     CSV_FILE_PATH = 'table_data_test.csv'
     xml_pages = read_xml_pages(XML_FILE_PATH)
     all_data = []
