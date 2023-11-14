@@ -87,6 +87,7 @@ with open(csv_file_path, "w") as fp:
     wr = csv.writer(fp)
     wr.writerow(col_headers)
 
+num_tables = 0
 for page in xml_pages:
     page_title = unidecode.unidecode(re.search('<title>(.*?)</title>', page).group(1).strip())
     parsed = wtp.parse(page)
@@ -135,4 +136,6 @@ for page in xml_pages:
                     wr = csv.writer(fp)
                     wr.writerow([preprocess_text(table_title), preprocess_text(table_text), preprocess_text(section_title).strip(), 'section_content', page_title])
 
-    #input("Press Enter to continue...")
+                num_tables += 1
+
+print(f"Number of tables extracted: {num_tables}")
