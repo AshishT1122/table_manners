@@ -4,7 +4,7 @@ import unidecode
 import csv
 
 xml_file_path = 'sample.xml'
-csv_file_path = 'table_data_test.csv'
+tsv_file_path = 'table_data_test.tsv'
 
 
 def preprocess_text(text):
@@ -13,6 +13,7 @@ def preprocess_text(text):
         text = re.sub('\{\{Citation needed.*?\}\}', ' ', text)
         text = re.sub('\{\{sfn.*?\}\}', ' ', text)
         text = text.replace("{{break}}", " ")
+        text = text.replace("{{clear}}", "")
         text = re.sub('background:(.*?)\}\}', '', text)
         text = text.replace(r"TABLETOREPLACE", " ")
         text = text.replace(r"'''", " ")
@@ -80,6 +81,8 @@ def preprocess_text(text):
         text = text.replace("sortname |", "")
         text = re.sub("\|\s*lc=y", "", text)
         text = re.sub("\s+", " ", text)
+    else:
+        return ""
 
     return text
 
@@ -91,12 +94,12 @@ xml_pages = re.findall(selector, markup)
 dump_file.close()
 
 
-col_headers = ['table_title', 'table_content', 'section_title', 'section_content', 'page_title']
-with open(csv_file_path, "w") as fp:
-    wr = csv.writer(fp)
+col_headers = ['pid', 'article_title', 'passage_text']
+with open(tsv_file_path, "w") as fp:
+    wr = csv.writer(fp, delimiter='\t')
     wr.writerow(col_headers)
 
-num_tables = 0
+pid = 0
 for page in xml_pages:
     page_title = unidecode.unidecode(re.search('<title>(.*?)</title>', page).group(1).strip())
     parsed = wtp.parse(page)
@@ -104,17 +107,28 @@ for page in xml_pages:
         section_title = preprocess_text(sec.title)
         if len(sec.tables) > 0:
             section_content = " " + sec.contents.replace("\n", " ") + " "
-            context_split = re.split("\{\|\s*class=&quot;wikitable.*?\|\}", section_content)
+            context_split = re.split("\{\|\s*class=&quot;.*?wikitable.*?\|\}", section_content)
+            print(len(context_split))
+            print(len(sec.tables))
+            print(section_title)
             assert len(context_split) == len(sec.tables) + 1  # check that context_split got context between each table
 
             for i in range(len(sec.tables)):
                 table = sec.tables[i]
-                table_title = None if table.caption is None else preprocess_text(table.caption.strip())
+                table_title = "" if table.caption is None else preprocess_text(table.caption.strip())
 
-                context_split_1 = re.split("\. ", context_split[i])
-                context_split_2 = re.split("\. ", context_split[i+1])
-                section_content = context_split_1[len(context_split_1) - 1] + context_split_2[0]
-                section_content = preprocess_text(section_content).strip()
+                context_split_1 = re.split("\. ", preprocess_text(context_split[i]))
+                context_split_2 = re.split("\. ", preprocess_text(context_split[i+1]))
+                context_1 = context_split_1[len(context_split_1) - 1]
+                context_2 = context_split_2[0]
+                if section_title.strip() == "Culture":
+                    print(context_1)
+                    print(len(context_1))
+                    print(context_2)
+                if (len(context_1) == 0 or context_1.isspace()) and len(context_split_1) > 1:
+                    context_1 = context_split_1[len(context_split_1) - 2] + context_1
+                preceding_content = preprocess_text(context_1).strip()
+                proceeding_content = preprocess_text(context_2).strip()
 
                 table_text = ""
                 try:
@@ -147,10 +161,11 @@ for page in xml_pages:
                 table_text = preprocess_text(table_text).strip()
 
                 # adds table title, table text, section title, 'section_content' (to be updated), and page title into csv
-                with open('table_data_test.csv', "a") as fp:
-                    wr = csv.writer(fp)
-                    wr.writerow([table_title, table_text, section_title, section_content, page_title])
+                with open(tsv_file_path, "a") as fp:
+                    wr = csv.writer(fp, delimiter='\t')
+                    linearized_table_context = page_title + " ; " + section_title + " ; " + preceding_content + " ; " + table_title + " ; " + table_text + " ; " + proceeding_content
+                    wr.writerow([pid, page_title, linearized_table_context])
 
-                num_tables += 1
+                pid += 1
 
-print(f"Number of tables extracted: {num_tables}")
+print(f"Number of tables extracted: {pid}")
