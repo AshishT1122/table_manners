@@ -78,12 +78,13 @@ def process_tables(xml_pages):
             parsed = wtp.parse(page)
 
             for section in parsed.sections:
-                process_section(section, page_title, writer, pid, table_data_fails)
+                num_tables = process_section(section, page_title, writer, pid, table_data_fails)
+                pid += int(num_tables or 0)
 
 def process_section(section, page_title, writer, pid, table_data_fails):
     """Processes a single section from a Wikipedia page."""
     section_title = preprocess_text(section.title)
-
+    num_tables = 0
     if not section.tables:
         return
 
@@ -100,10 +101,11 @@ def process_section(section, page_title, writer, pid, table_data_fails):
             linearized_table_context = build_linearized_context(
                 page_title, section_title, preceding_content, table_title, table_text, proceeding_content
             )
-            writer.writerow([pid, page_title, linearized_table_context])
-            pid += 1
+            writer.writerow([pid + num_tables, page_title, linearized_table_context])
+            num_tables += 1
         else:
             table_data_fails += 1
+    return num_tables
 
 def extract_context(context_split, index):
     """Extracts preceding and proceeding context for a table."""
